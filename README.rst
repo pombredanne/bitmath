@@ -30,8 +30,11 @@ includes:
 * Basic arithmetic operations (subtracting 42KiB from 50GiB)
 * Rich comparison operations (``1024 Bytes == 1KiB``)
 * bitwise operations (``<<``, ``>>``, ``&``, ``|``, ``^``)
-* `argparse <https://docs.python.org/2/library/argparse.html>`_ integration
-* `progressbar <https://code.google.com/p/python-progressbar/>`_ integration
+* Reading a device's storage capacity (Linux/OS X support only)
+* `argparse <https://docs.python.org/2/library/argparse.html>`_
+  integration as a custom type
+* `progressbar <https://code.google.com/p/python-progressbar/>`_
+  integration as a better file transfer speed widget
 * String parsing
 * Sorting
 
@@ -52,24 +55,44 @@ most of the time what you're really seeing are the base-2 sizes/rates.
 **Don't Forget!** The source for bitmath `is available on GitHub
 <https://github.com/tbielawa/bitmath>`_.
 
-OH! And did we mention it has 180+ unittests? `Check them out for
+And did we mention there's almost 200 unittests? `Check them out for
 yourself <https://github.com/tbielawa/bitmath/tree/master/tests>`_.
 
 
 Installation
 ============
 
-The easiest way to install bitmath is via ``yum`` if you're on a
-Fedora/RHEL based distribution. bitmath is available in the main
-Fedora repositories, as well as the `EPEL6
+The easiest way to install bitmath is via ``dnf`` (or ``yum``) if
+you're on a Fedora/RHEL based distribution. bitmath is available in
+the main Fedora repositories, as well as the `EPEL6
 <http://download.fedoraproject.org/pub/epel/6/i386/repoview/epel-release.html>`_
 and `EPEL7
 <http://download.fedoraproject.org/pub/epel/7/x86_64/repoview/epel-release.html>`_
-repositories.
+repositories. There are now dual python2.x and python3.x releases
+available.
+
+
+**Python 2.x**:
 
 .. code-block:: bash
 
-   $ sudo yum install python-bitmath
+   $ sudo dnf install python2-bitmath
+
+**Python 3.x**:
+
+.. code-block:: bash
+
+   $ sudo dnf install python3-bitmath
+
+
+.. note::
+
+   **Upgrading**: If you have the old *python-bitmath* package
+   installed presently, you could also run ``sudo dnf update
+   python-bitmath`` instead
+
+
+**PyPi**:
 
 You could also install bitmath from `PyPi
 <https://pypi.python.org/pypi/bitmath>`_ if you like:
@@ -77,6 +100,30 @@ You could also install bitmath from `PyPi
 .. code-block:: bash
 
    $ sudo pip install bitmath
+
+.. note::
+
+   **pip** installs need pip >= 1.1. To workaround this, `download
+   bitmath <https://pypi.python.org/pypi/bitmath/#downloads>`_, from
+   PyPi and then ``pip install bitmath-x.y.z.tar.gz``. See `issue #57
+   <https://github.com/tbielawa/bitmath/issues/57#issuecomment-227018168>`_
+   for more information.
+
+
+**PPA**:
+
+Ubuntu Xenial, Wily, Vivid, Trusty, and Precise users can install
+bitmath from the `launchpad PPA
+<https://launchpad.net/~tbielawa/+archive/ubuntu/bitmath>`_:
+
+.. code-block:: bash
+
+   $ sudo add-apt-repository ppa:tbielawa/bitmath
+   $ sudo apt-get update
+   $ sudo apt-get install python-bitmath
+
+
+**Source**:
 
 Or, if you want to install from source:
 
@@ -143,6 +190,8 @@ Topics include:
 
   * Rules for Math
   * On Units
+  * Who uses Bitmath
+  * Related Projects
 
 * NEWS
 
@@ -277,6 +326,17 @@ Utility Functions
    <class 'bitmath.GiB'>
    >>> print a_dvd
    4.7 GiB
+
+**bitmath.query_device_capacity()**
+
+.. code-block:: python
+
+   >>> import bitmath
+   >>> with open('/dev/sda') as fp:
+   ...     root_disk = bitmath.query_device_capacity(fp)
+   ...     print root_disk.best_prefix()
+   ...
+   238.474937439 GiB
 
 **bitmath.listdir()**
 

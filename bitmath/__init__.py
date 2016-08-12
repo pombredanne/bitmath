@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # The MIT License (MIT)
 #
-# Copyright © 2014 Tim Bielawa <timbielawa@gmail.com>
+# Copyright © 2014-2016 Tim Bielawa <timbielawa@gmail.com>
 # See GitHub Contributors Graph for more information
 #
 # Permission is hereby granted, free of charge, to any person
@@ -23,8 +23,11 @@
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
+# pylint: disable=bad-continuation,missing-docstring,invalid-name,line-too-long
 
 """Reference material:
+The bitmath homepage is located at:
+* http://bitmath.readthedocs.io/en/latest/
 
 Prefixes for binary multiples:
 http://physics.nist.gov/cuu/Units/binary.html
@@ -62,10 +65,12 @@ import os.path
 import platform
 import sys
 
-# for device capacity reading in get_device_capacity()
-import stat
-import fcntl
-import struct
+# For device capacity reading in query_device_capacity(). Only supported
+# on posix systems for now. Will be addressed in issue #52 on GitHub.
+if os.name == 'posix':
+    import stat
+    import fcntl
+    import struct
 
 
 __all__ = ['Bit', 'Byte', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB',
@@ -146,6 +151,21 @@ format_string = "{value} {unit}"
 
 #: Pluralization behavior
 format_plural = False
+
+
+def os_name():
+    # makes unittesting platform specific code easier
+    return os.name
+
+
+def capitalize_first(s):
+    """Capitalize ONLY the first letter of the input `s`
+
+* returns a copy of input `s` with the first letter capitalized
+    """
+    pfx = s[0].upper()
+    _s = s[1:]
+    return pfx + _s
 
 
 ######################################################################
@@ -450,7 +470,10 @@ prefix unit' for representation:
 * 0 < result < len(SYSTEM_STEPS), best represented as SYSTEM_PREFIXES[result-1]
 
         """
-        if self < Byte(1):
+
+        # Use absolute value so we don't return Bit's for *everything*
+        # less than Byte(1). From github issue #55
+        if abs(self) < Byte(1):
             return Bit.from_other(self)
         else:
             if not type(self) == Byte:
@@ -481,7 +504,7 @@ prefix unit' for representation:
                                  " Must be one of NIST or SI")
 
         # Index of the string of the best prefix in the STEPS list
-        _index = int(math.log(_inst.bytes, _BASE))
+        _index = int(math.log(abs(_inst.bytes), _BASE))
 
         # Recall that the log() function returns >= 0. This doesn't
         # map to the STEPS list 1:1. That is to say, 0 is handled with
@@ -943,31 +966,37 @@ class Byte(Bitmath):
 class KiB(Byte):
     def _setup(self):
         return (2, 10, 'KiB', 'KiBs')
+Kio = KiB
 
 
 class MiB(Byte):
     def _setup(self):
         return (2, 20, 'MiB', 'MiBs')
+Mio = MiB
 
 
 class GiB(Byte):
     def _setup(self):
         return (2, 30, 'GiB', 'GiBs')
+Gio = GiB
 
 
 class TiB(Byte):
     def _setup(self):
         return (2, 40, 'TiB', 'TiBs')
+Tio = TiB
 
 
 class PiB(Byte):
     def _setup(self):
         return (2, 50, 'PiB', 'PiBs')
+Pio = PiB
 
 
 class EiB(Byte):
     def _setup(self):
         return (2, 60, 'EiB', 'EiBs')
+Eio = EiB
 
 
 ######################################################################
@@ -975,41 +1004,49 @@ class EiB(Byte):
 class kB(Byte):
     def _setup(self):
         return (10, 3, 'kB', 'kBs')
+ko = kB
 
 
 class MB(Byte):
     def _setup(self):
         return (10, 6, 'MB', 'MBs')
+Mo = MB
 
 
 class GB(Byte):
     def _setup(self):
         return (10, 9, 'GB', 'GBs')
+Go = GB
 
 
 class TB(Byte):
     def _setup(self):
         return (10, 12, 'TB', 'TBs')
+To = TB
 
 
 class PB(Byte):
     def _setup(self):
         return (10, 15, 'PB', 'PBs')
+Po = PB
 
 
 class EB(Byte):
     def _setup(self):
         return (10, 18, 'EB', 'EBs')
+Eo = EB
 
 
 class ZB(Byte):
     def _setup(self):
         return (10, 21, 'ZB', 'ZBs')
+Zo = ZB
 
 
 class YB(Byte):
     def _setup(self):
         return (10, 24, 'YB', 'YBs')
+Yo = YB
 
 
 ######################################################################
@@ -1153,6 +1190,8 @@ ioctl's for querying block device sizes:
    :return: a bitmath :class:`bitmath.Byte` instance equivalent to the
    capacity of the target device in bytes.
 """
+    if os_name() != 'posix':
+        raise NotImplementedError("'bitmath.query_device_capacity' is not supported on this platform: %s" % os_name())
 
     s = os.stat(device_fd.name).st_mode
     if not stat.S_ISBLK(s):
@@ -1365,6 +1404,132 @@ the unit.
         return unit_class(val)
     except:  # pragma: no cover
         raise ValueError("Can't parse string %s into a bitmath object" % s)
+
+
+def parse_string_unsafe(s, system=SI):
+    """Attempt to parse a string with ambiguous units and try to make a
+bitmath object out of it.
+
+This may produce inaccurate results if parsing shell output. For
+example `ls` may say a 2730 Byte file is '2.7K'. 2730 Bytes == 2.73 kB
+~= 2.666 KiB. See the documentation for all of the important details.
+
+Note the following caveats:
+
+* All inputs are assumed to be byte-based (as opposed to bit based)
+
+* Numerical inputs (those without any units) are assumed to be a
+  number of bytes
+
+* Inputs with single letter units (k, M, G, etc) are assumed to be SI
+  units (base-10). Set the `system` parameter to `bitmath.NIST` to
+  change this behavior.
+
+* Inputs with an `i` character following the leading letter (Ki, Mi,
+  Gi) are assumed to be NIST units (base 2)
+
+* Capitalization does not matter
+
+    """
+    if type(s) is not str and \
+       type(s) is not unicode and \
+       not isinstance(s, numbers.Number):
+        raise ValueError("parse_string_unsafe only accepts string/number inputs but a %s was given" %
+                         type(s))
+
+    ######################################################################
+    # Is the input simple to parse? Just a number, or a number
+    # masquerading as a string perhaps?
+
+    # Test case: raw number input (easy!)
+    if isinstance(s, numbers.Number):
+        # It's just a number. Assume bytes
+        return Byte(s)
+
+    # Test case: a number pretending to be a string
+    if isinstance(s, str) or isinstance(s, unicode):
+        try:
+            # Can we turn it directly into a number?
+            return Byte(float(s))
+        except ValueError:
+            # Nope, this is not a plain number
+            pass
+
+    ######################################################################
+    # At this point:
+    # - the input is also not just a number wrapped in a string
+    # - nor is is just a plain number type
+    #
+    # We need to do some more digging around now to figure out exactly
+    # what we were given and possibly normalize the input into a
+    # format we can recognize.
+
+    # First we'll separate the number and the unit.
+    #
+    # Get the index of the first alphabetic character
+    try:
+        index = list([i.isalpha() for i in s]).index(True)
+    except ValueError:  # pragma: no cover
+        # If there's no alphabetic characters we won't be able to .index(True)
+        raise ValueError("No unit detected, can not parse string '%s' into a bitmath object" % s)
+
+    # Split the string into the value and the unit
+    val, unit = s[:index], s[index:]
+
+    # Don't trust anything. We'll make sure the correct 'b' is in place.
+    unit = unit.rstrip('Bb')
+    unit += 'B'
+
+    # At this point we can expect `unit` to be either:
+    #
+    # - 2 Characters (for SI, ex: kB or GB)
+    # - 3 Caracters (so NIST, ex: KiB, or GiB)
+    #
+    # A unit with any other number of chars is not a valid unit
+
+    # SI
+    if len(unit) == 2:
+        # Has NIST parsing been requested?
+        if system == NIST:
+            # NIST units requested. Ensure the unit begins with a
+            # capital letter and is followed by an 'i' character.
+            unit = capitalize_first(unit)
+            # Insert an 'i' char after the first letter
+            _unit = list(unit)
+            _unit.insert(1, 'i')
+            # Collapse the list back into a 3 letter string
+            unit = ''.join(_unit)
+            unit_class = globals()[unit]
+        else:
+            # Default parsing (SI format)
+            #
+            # Edge-case checking: SI 'thousand' is a lower-case K
+            if unit.startswith('K'):
+                unit = unit.replace('K', 'k')
+            elif not unit.startswith('k'):
+                # Otherwise, ensure the first char is capitalized
+                unit = capitalize_first(unit)
+
+            # This is an SI-type unit
+            if unit[0] in SI_PREFIXES:
+                unit_class = globals()[unit]
+    # NIST
+    elif len(unit) == 3:
+        unit = capitalize_first(unit)
+
+        # This is a NIST-type unit
+        if unit[:2] in NIST_PREFIXES:
+            unit_class = globals()[unit]
+    else:
+        # This is not a unit we recognize
+        raise ValueError("The unit %s is not a valid bitmath unit" % unit)
+
+    try:
+        unit_class
+    except UnboundLocalError:
+        raise ValueError("The unit %s is not a valid bitmath unit" % unit)
+
+    return unit_class(float(val))
 
 
 ######################################################################

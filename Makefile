@@ -142,12 +142,16 @@ sdist: setup.py clean
 	@echo "#############################################"
 	python setup.py sdist
 
+deb: setup.py clean
+	git archive --format=tar --prefix=bitmath/ HEAD | gzip -9 > ../bitmath_$(VERSION).$(RPMRELEASE).orig.tar.gz
+	debuild -us -uc
+
 rpmcommon: sdist python-bitmath.spec setup.py
 	@echo "#############################################"
 	@echo "# Building (S)RPM Now"
 	@echo "#############################################"
 	@mkdir -p rpm-build
-	@cp dist/$(NAME)-$(VERSION)-$(RPMRELEASE).tar.gz rpm-build/$(VERSION)-$(RPMRELEASE).tar.gz
+	@cp dist/$(NAME)-$(VERSION).$(RPMRELEASE).tar.gz rpm-build/$(VERSION).$(RPMRELEASE).tar.gz
 
 srpm5: rpmcommon
 	rpmbuild --define "_topdir %(pwd)/rpm-build" \
@@ -235,7 +239,7 @@ virtualenv3:
 	@echo "#############################################"
 	@echo "# Creating a virtualenv"
 	@echo "#############################################"
-	virtualenv $(NAME)env3 --python=python3.3
+	virtualenv $(NAME)env3 --python=python3
 	. $(NAME)env3/bin/activate && pip install -r requirements-py3.txt
 	. $(NAME)env3/bin/activate && pip install pep8 nose coverage nose-cover3 mock
 

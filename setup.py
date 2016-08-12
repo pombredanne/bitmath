@@ -23,7 +23,7 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-
+from __future__ import print_function
 try:
     from setuptools import setup
 except ImportError:
@@ -35,7 +35,7 @@ pypi_notice = open('README.rst', 'r').read()
 
 setup(
     name='bitmath',
-    version='1.2.3-3',
+    version='1.3.1.1',
     description='Pythonic module for representing and manipulating file sizes with different prefix notations.',
     long_description=pypi_notice,
     maintainer='Tim Bielawa',

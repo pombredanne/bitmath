@@ -6,6 +6,129 @@ NEWS
    :local:
 
 
+.. _bitmath-1.3.1-1:
+
+bitmath-1.3.1-1
+***************
+
+`bitmath-1.3.1-1
+<https://github.com/tbielawa/bitmath/releases/tag/1.3.1.1>`__ was
+published on 2016-07-17.
+
+Changes
+=======
+
+**Added Functionality**
+
+* New function: :func:`bitmath.parse_string_unsafe`, a less strict
+  version of :func:`bitmath.parse_string`. Accepts inputs using
+  *non-standard* prefix units (such as single-letter, or
+  mis-capitalized units).
+
+* Inspired by `@darkblaze69 <https://github.com/darkblaze69>`_'s
+  request in `#60 "Problems in parse_string"
+  <https://github.com/tbielawa/bitmath/issues/60>`_.
+
+
+Project
+=======
+
+**Ubuntu**
+
+* Bitmath is now available for installation via Ubuntu Xenial, Wily,
+  Vivid, Trusty, and Precise PPAs.
+
+* Ubuntu builds inspired by `@hkraal <https://github.com/hkraal>`_
+  reporting an `installation issue
+  <https://github.com/tbielawa/bitmath/issues/57>`_ on Ubuntu systems.
+
+
+**Documentation**
+
+* `Cleaned up a lot <https://github.com/tbielawa/bitmath/issues/59>`_
+  of broken or re-directing links using output from the Sphinx ``make
+  linkcheck`` command.
+
+
+.. _bitmath-1.3.0-1:
+
+bitmath-1.3.0-1
+***************
+
+`bitmath-1.3.0-1
+<https://github.com/tbielawa/bitmath/releases/tag/1.3.0.1>`__ was
+published on 2016-01-08.
+
+Changes
+=======
+
+**Bug Fixes**
+
+* Closed `GitHub Issue #55
+  <https://github.com/tbielawa/bitmath/issues/55>`_ "best_prefix for
+  negative values". Now :func:`bitmath.best_prefix` returns correct
+  prefix units for negative values. Thanks `mbdm
+  <https://github.com/mbdm>`_!
+
+
+.. _bitmath-1.2.4-1:
+
+bitmath-1.2.4-1
+***************
+
+`bitmath-1.2.4-1
+<https://github.com/tbielawa/bitmath/releases/tag/1.2.4-1>`__ was
+published on 2015-11-30.
+
+Changes
+=======
+
+**Added Functionality**
+
+* New bitmath module function: :func:`bitmath.query_device_capacity`. Create
+  :class:`bitmath.Byte` instances representing the capacity of a block
+  device. Support is presently limited to Linux and Mac.
+
+* The :func:`bitmath.parse_string` function now can parse 'octet'
+  based units. Enhancement requested in `#53 parse french unit names
+  <https://github.com/tbielawa/bitmath/issues/53>`_ by `walidsa3d
+  <https://github.com/walidsa3d>`_.
+
+**Bug Fixes**
+
+* `#49 <https://github.com/tbielawa/bitmath/pull/49>`_ - Fix handling
+  unicode input in the `bitmath.parse_string
+  <https://bitmath.readthedocs.org/en/latest/module.html#bitmath-parse-string>`__
+  function. Thanks `drewbrew <https://github.com/drewbrew>`_!
+
+* `#50 <https://github.com/tbielawa/bitmath/pull/50>`_ - Update the
+  ``setup.py`` script to be python3.x compat. Thanks `ssut
+  <https://github.com/ssut>`_!
+
+
+Documentation
+=============
+
+* The project documentation is now installed along with the bitmath
+  library in RPM packages.
+
+
+Project
+=======
+
+**Fedora/EPEL**
+
+Look for separate python3.x and python2.x packages coming soon to
+`Fedora <https://getfedora.org/>`_ and `EPEL
+<https://fedoraproject.org/wiki/EPEL>`_. This is happening because of
+the `initiative
+<https://fedoraproject.org/wiki/FAD_Python_3_Porting_2015>`_ to update
+the base Python implementation on Fedora to Python 3.x
+
+* `BZ1282560 <https://bugzilla.redhat.com/show_bug.cgi?id=1282560>`_
+
+
+
 .. _bitmath-1.2.3-1:
 
 bitmath-1.2.3-1
@@ -126,11 +249,9 @@ Major Updates
   <http://bitmath.readthedocs.org/en/latest/>`_
 * bitmath is now Python 3.x compatible
 * bitmath is now included in the `Extra Packages for Enterprise Linux
-  <https://fedoraproject.org/wiki/EPEL>`_ `EPEL6
-  <http://dl.fedoraproject.org/pub/epel/6/x86_64/repoview/python-bitmath.html>`_
-  and `EPEL7
-  <http://dl.fedoraproject.org/pub/epel/7/x86_64/repoview/python-bitmath.html>`_
-  repositories
+  <https://fedoraproject.org/wiki/EPEL>`_ EPEL6 and EPEL7 repositories
+  (`pkg info
+  <https://admin.fedoraproject.org/pkgdb/package/rpms/python-bitmath/>`_)
 * merged 6 `pull requests
   <https://github.com/tbielawa/bitmath/pulls?q=is%3Apr+closed%3A%3C2014-08-28>`_
   from 3 `contributors
@@ -183,7 +304,7 @@ Project
   than the previous major release (`1.0.4-1 <bitmath-1.0.4-1>`__)
 * Test suite now runs on EPEL6 and EPEL7
 * `Code coverage
-  <https://coveralls.io/r/tbielawa/bitmath?branch=master>`_ is stable
+  <https://coveralls.io/github/tbielawa/bitmath>`_ is stable
   around 95-100%
 
 
@@ -202,8 +323,8 @@ Project
 Available via:
 
 * `PyPi <https://pypi.python.org/pypi/bitmath/>`_
-* `Fedora 19 <https://admin.fedoraproject.org/updates/FEDORA-2014-4235/python-bitmath-1.0.4-1.fc19>`_
-* `Fedora 20 <https://admin.fedoraproject.org/updates/FEDORA-2014-4235/python-bitmath-1.0.4-1.fc20>`_
+* Fedora 19
+* Fedora 20
 
 bitmath had been under development for 12 days when the 1.0.4-1
 release was made available.

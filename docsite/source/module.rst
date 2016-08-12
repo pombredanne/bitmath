@@ -224,6 +224,8 @@ bitmath.parse_string()
 
 .. function:: parse_string(str_repr)
 
+   .. versionadded:: 1.1.0
+
    Parse a string representing a unit into a proper bitmath
    object. All non-string inputs are rejected and will raise a
    :py:exc:`ValueError`. Strings without units are also rejected. See
@@ -252,7 +254,8 @@ bitmath.parse_string()
       generated file. Many applications (even ``/usr/bin/ls``) still
       do not produce file size strings with valid (or even correct)
       prefix units unless `specially configured to do so
-      <https://www.gnu.org/software/coreutils/manual/html_node/Block-size.html#Block-size>`_.
+      <https://www.gnu.org/software/coreutils/manual/html_node/Block-size.html#Block-size>`_. See
+      :py:func:`bitmath.parse_string_unsafe` as an alternative.
 
    To protect your application from unexpected runtime errors it is
    recommended that calls to :py:func:`bitmath.parse_string` are
@@ -289,7 +292,186 @@ bitmath.parse_string()
       Parsed size into 1.3056640625 KiB
       Parsed size into 1.3056640625 KiB
 
-   .. versionadded:: 1.1.0
+
+   .. versionchanged:: 1.2.4
+      Added support for parsing *octet* units via issue `#53 - parse
+      french units
+      <https://github.com/tbielawa/bitmath/issues/53>`_. The `usage
+      <https://en.wikipedia.org/wiki/Octet_(computing)#Use>`_ of
+      "octet" is still common in some `RFCs
+      <https://en.wikipedia.org/wiki/Request_for_Comments>`_, as well
+      as France, French Canada and Romania. See also, a table of the
+      octet units and their values on `Wikipedia
+      <https://en.wikipedia.org/wiki/Octet_(computing)#Unit_multiples>`_.
+
+   Here are some simple examples of parsing *octet* based units:
+
+   .. code-block:: python
+      :linenos:
+      :emphasize-lines: 4,5
+
+      >>> import bitmath
+      >>> a_mebibyte = bitmath.parse_string("1 MiB")
+      >>> a_mebioctet = bitmath.parse_string("1 Mio")
+      >>> print a_mebibyte, a_mebioctet
+      1.0 MiB 1.0 MiB
+      >>> print bitmath.parse_string("1Po")
+      1.0 PB
+      >>> print bitmath.parse_string("1337 Eio")
+      1337.0 EiB
+
+   Notice how on lines **4** and **5** that the variable
+   ``a_mebibyte`` from the input ``1 MiB`` is exactly equivalent to
+   ``a_mebioctet`` from the different input ``1 Mio``. This is because
+   after :py:mod:`bitmath` parses the octet units the results are
+   normalized into their **standard** NIST/SI equivalents
+   automatically.
+
+
+   .. note::
+
+      If your input isn't compatible with
+      :py:func:`bitmath.parse_string` you can try using
+      :py:func:`bitmath.parse_string_unsafe`
+      instead. :py:func:`bitmath.parse_string_unsafe` is more
+      forgiving with input. Please read the documentation carefully so
+      you understand the risks you assume using the ``unsafe`` parser.
+
+
+bitmath.parse_string_unsafe()
+=============================
+
+.. function:: parse_string_unsafe(repr[, system=bitmath.SI])
+
+   .. versionadded:: 1.3.1
+
+   Parse a string or number into a proper bitmath object. This is the
+   less strict version of the :py:func:`bitmath.parse_string`
+   function. While :py:func:`bitmath.parse_string` only accepts SI and
+   NIST defined unit prefixes, :py:func:`bitmath.parse_string_unsafe`
+   accepts *non-standard* units such as those often displayed in
+   command-line output. Examples following the description.
+
+   :param repr: The value to parse. May contain whitespace between the
+                value and the unit.
+
+   :param system: :py:func:`bitmath.parse_string_unsafe` defaults to
+                  parsing units as ``SI`` (base-10) units. Set the
+                  ``system`` parameter to :py:data:`bitmath.NIST` if
+                  you know your input is in ``NIST`` (base-2) format.
+
+   :return: A bitmath object representing ``repr``
+   :raises ValueError: if ``repr`` can not be parsed
+
+   Use of this function comes with several caveats:
+
+   * All inputs are assumed to be byte-based (as opposed to bit based)
+   * Numerical inputs (those without any units) are assumed to be a number of bytes
+   * Inputs with single letter units (``k``, ``M``, ``G``, etc) are
+     assumed to be SI units (base-10). See the ``system`` parameter
+     description **above** to change this behavior
+   * Inputs with an ``i`` character following the leading letter (``Ki``,
+     ``Mi``, ``Gi``) are assumed to be NIST units (base-2)
+   * Capitalization does not matter
+
+   What exactly are these *non-standard* units? Generally speaking
+   non-standard units will not include enough information to be able
+   to identify exactly which unit system is being used. This is caused
+   by mis-capitalized characters (capital ``k``'s for SI *kilo* units
+   when they should be lower case), or omitted Byte or Bit
+   suffixes. You can find examples of non-standard units in many
+   common command line functions or parameters. For example:
+
+   * The ``ls`` command will print out single-letter units when given
+     the ``-h`` option flag
+   * Running ``qemu-img info virtualdisk.img`` will also report with
+     single letter units
+   * The ``df`` command also uses single-letter units
+   * `Kubernetes
+     <http://kubernetes.io/docs/user-guide/compute-resources/>`_ will
+     display items like *memory limits* using two letter NIST units
+     (ex: ``memory: 2370Mi``)
+
+   Given those considerations, understanding exactly what values you
+   are feeding into this function is crucial to getting accurate
+   results. You can control the output of some commands with various
+   option flags. For example, you could ensure the GNU ``ls`` and
+   ``df`` commands print with SI values by providing the ``--si``
+   option flag. By default those commands will print out using NIST
+   (base-2) values.
+
+   In this example let's pretend we're parsing the output of running
+   ``df -H / /boot /home`` on our filesystems. Assume the output is
+   saved into a file called ``/tmp/df-output.txt`` and looks like
+   this::
+
+      Filesystem                                 Size  Used Avail Use% Mounted on
+      /dev/mapper/luks-ca8d5493-72bb-4691-afe1   107G   64G   38G  63% /
+      /dev/sda1                                  500M  391M   78M  84% /boot
+      /dev/mapper/vg_deepfryer-lv_home           129G  118G  4.7G  97% /home
+
+   Now let's read this file, parse the ``Used`` column, and then print
+   out the space used (line **7**):
+
+   .. code-block:: python
+      :linenos:
+      :emphasize-lines: 7
+
+      >>> with open('/tmp/df-output.txt', 'r') as fp:
+      ...     # Skip parsing the 'df' header column
+      ...     _ = fp.readline()
+      ...     for line in fp.readlines():
+      ...         cols = line.split()[0:4]
+      ...         print """Filesystem: %s
+      ... - Used: %s""" % (cols[0], bitmath.parse_string_unsafe(cols[1]))
+      Filesystem: /dev/mapper/luks-ca8d5493-72bb-4691-afe1
+      - Used: 107.0 GB
+      Filesystem: /dev/sda1
+      - Used: 500.0 MB
+      Filesystem: /dev/mapper/vg_deepfryer-lv_home
+      - Used: 129.0 GB
+
+
+   If we had ran the ``df`` command with the ``-h`` option (instead of
+   ``-H``) we will get base-2 (NIST) output. That would look like
+   this::
+
+     Filesystem                                 Size  Used Avail Use% Mounted on
+     /dev/mapper/luks-ca8d5493-72bb-4691-afe1   100G   59G   36G  63% /
+     /dev/sda1                                  477M  373M   75M  84% /boot
+     /dev/mapper/vg_deepfryer-lv_home           120G  110G  4.4G  97% /home
+
+   Because we switch from ``SI`` output to ``NIST`` output the values
+   displayed are slightly different. **However** they still print
+   using the same prefix unit, ``G``. We can tell
+   :py:func:`bitmath.parse_string_unsafe` that the input is ``NIST``
+   (base-2) by giving ``bitmath.NIST`` to the ``system`` parameter
+   like this (line **8**):
+
+   .. code-block:: python
+      :linenos:
+      :emphasize-lines: 8
+
+      >>> with open('/tmp/df-output.txt', 'r') as fp:
+      ...     # Skip parsing the 'df' header column
+      ...     _ = fp.readline()
+      ...     for line in fp.readlines():
+      ...         cols = line.split()[0:4]
+      ...         print """Filesystem: %s
+      ... - Used: %s""" % (cols[0],
+      ...                  bitmath.parse_string_unsafe(cols[1], \
+      ...                      system=bitmath.NIST))
+      Filesystem: /dev/mapper/luks-ca8d5493-72bb-4691-afe1
+      - Used: 100.0 GiB
+      Filesystem: /dev/sda1
+      - Used: 477.0 MiB
+      Filesystem: /dev/mapper/vg_deepfryer-lv_home
+      - Used: 120.0 GiB
+
+   The results printed use the proper NIST prefix unit syntax now:
+   Capital **G** followed by a lower-case **i** ending with a capital
+   **B**, ``GiB``.
+
 
 
 bitmath.query_device_capacity()
@@ -754,16 +936,16 @@ progressbar
 .. versionadded:: 1.2.1
 
 The `progressbar module
-<https://code.google.com/p/python-progressbar/>`_ is typically used to
-display the progress of a long running task, such as a file transfer
-operation. The module provides widgets for custom formatting how
-exactly the 'progress' is displayed. Some examples include: overall
-percentage complete, estimated time until completion, and an ASCII
-progress bar which fills as the operation continues.
+<https://github.com/niltonvolpato/python-progressbar>`_ is typically
+used to display the progress of a long running task, such as a file
+transfer operation. The module provides widgets for custom formatting
+how exactly the 'progress' is displayed. Some examples include:
+overall percentage complete, estimated time until completion, and an
+ASCII progress bar which fills as the operation continues.
 
 While :mod:`progressbar` already includes a widget suitable for
 displaying `file transfer rates
-<https://code.google.com/p/python-progressbar/source/browse/progressbar/widgets.py#166>`_,
+<https://github.com/niltonvolpato/python-progressbar/blob/master/progressbar/widgets.py#L165>`_,
 this widget does not support customizing its presentation, and is
 limited to only prefix units from the SI system.
 
@@ -772,7 +954,7 @@ limited to only prefix units from the SI system.
 
    The :class:`BitmathFileTransferSpeed` class is a more functional
    replacement for the upstream `FileTransferSpeed
-   <https://code.google.com/p/python-progressbar/source/browse/progressbar/widgets.py>`_
+   <https://github.com/niltonvolpato/python-progressbar/blob/master/progressbar/widgets.py>`_
    widget.
 
    While both widgets are able to calculate average transfer rates
